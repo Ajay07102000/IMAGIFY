@@ -10,8 +10,6 @@ const app = express();
 
 app.use(express.json());
 
-import cors from 'cors';
-
 app.use(cors({
   origin: 'https://imagify-frontend-ui5f.onrender.com', // Your deployed frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -19,6 +17,14 @@ app.use(cors({
   credentials: true, // If your frontend uses cookies or authentication
 }));
 
+// Handle preflight requests
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', 'https://imagify-frontend-ui5f.onrender.com');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 // Connect to MongoDB
 await connectDB();
