@@ -1,42 +1,38 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import connectDB from './config/mongodb.js';
+import connectDB from './config/mongodb.js'; // Assuming this is your database connection
 import userRouter from './routes/userRoutes.js';
 import imageRouter from './routes/imageRoutes.js';
 
 const PORT = process.env.PORT || 4000;
 const app = express();
 
-app.use(express.json());
+// Configure CORS with specific origin (BEST PRACTICE for production)
+const allowedOrigins = ['https://imagify-frontend-ui5f.onrender.com']; // Replace with your frontend URL(s)
 
-app.use(cors({
-  origin: 'https://imagify-frontend-ui5f.onrender.com', // Your deployed frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type'],
-  credentials: true, // If your frontend uses cookies or authentication
-}));
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) { // Allow requests with no origin (like mobile apps or curl requests)
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allow all common methods
+  credentials: true, // Important for cookies and authorization headers
+  optionsSuccessStatus: 204, // Some legacy browsers choke on 204
+};
 
-// Handle preflight requests
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'https://imagify-frontend-ui5f.onrender.com');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
+app.use(cors(corsOptions)); // Use the configured CORS options
 
-// Connect to MongoDB
-await connectDB();
+app.use(express.json()); // Enable parsing of JSON request bodies
 
-// Routes
+await connectDB(); // Connect to the database
+
 app.use('/api/user', userRouter);
 app.use('/api/image', imageRouter);
 
-// Root endpoint
 app.get('/', (req, res) => res.send("API Working"));
 
-// Start the server
-app.listen(PORT, () =>
-  console.log('Server running on port ' + PORT)
-);
+app.listen(PORT, () => console.log('Server running on port' + PORT));
