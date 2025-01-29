@@ -84,6 +84,8 @@ const paymentRazorpay = async(req,res)=>{
         const {userId,planId} = req.body;
 
         const userData = await userModel.findById(userId);
+        
+
 
         if(!userId || !planId){
             return res.json({success:false, message:"Missing Detail"})
@@ -97,11 +99,13 @@ const paymentRazorpay = async(req,res)=>{
                 credits=100;
                 amount=999;
                 break;
+
             case 'Advanced':
                 plan='Advanced';
                 credits=500;
                 amount=4999;
                 break;
+                
             case 'Business':
                 plan='Business';
                 credits=5000;
@@ -141,6 +145,39 @@ const paymentRazorpay = async(req,res)=>{
     }
 }
 
+const verifyRazorpay = async (req,res)=>{
+    try{
+
+        const {razorpay_order_id}= req.body;
+
+        const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
+
+        if(orderInfo.status==='paid'){
+            const transactionData = await transactionModel.findById(orderInfo.receipt);
+
+            if(transactionData.payment){
+                return res.json({success:false, message:"payment Failed"})
+            }
+
+            const userData = await userModel.findById(transactionData.userId);
+
+            const creditBalance=userData.creditBalance + transactionData.credits;
+
+            await userModel.findByIdAndUpdate(userData._id,{creditBalance});
+
+            await transactionModel.findByIdAndUpdate(transactionData._id,{payment:true});
+
+            return res.json({success:true,message:"Credits Added"})
+
+        }else{
+            return res.json({success:false,message:"payment Failed"})
+        }
+
+    }catch(error){
+        console.log(error);
+        return res.json({success:false, message : error.message});
+    }
+}
 
 
-export {registerUser,loginUser,userCredits,paymentRazorpay};
+export {registerUser,loginUser,userCredits,paymentRazorpay,verifyRazorpay};
